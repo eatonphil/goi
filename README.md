@@ -6,16 +6,24 @@ An interpreter for Go.
 
 ```
 $ go build main.go
-$ cat examples/if.go
+$ cat examples/fib.go
 package main
 
-func main() {
-	if 1 == 1 {
-		return 3
+func fib(a int) int {
+	if a == 1 {
+		return 0
 	}
 
-	return 4
+	if a == 2 {
+		return 1
+	}
+
+	return fib(a-1) + fib(a-2)
 }
-$ ./main examples/if.go
-3
+
+func main() {
+	return fib(15)
+}
+$ ./main examples/fib.go
+377
 ```

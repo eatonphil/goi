@@ -10,6 +10,8 @@ import (
 	"strconv"
 )
 
+const TRACE = false
+
 type valueType int
 
 const (
@@ -67,7 +69,7 @@ func interpretBinaryExpr(ctx context, r *ret, bexpr *ast.BinaryExpr) {
 		r.setVal(value{i64, x.val.(int64) + y.val.(int64)})
 		return
 	case token.SUB:
-		r.setVal(value{i64, x.val.(int64) + y.val.(int64)})
+		r.setVal(value{i64, x.val.(int64) - y.val.(int64)})
 		return
 	case token.EQL:
 		r.setVal(value{bl, x.val.(int64) == y.val.(int64)})
@@ -181,7 +183,9 @@ func interpretFuncDecl(ctx context, r *ret, fd *ast.FuncDecl) {
 	ctx[fd.Name.String()] = value{
 		fn,
 		fnType(func(ctx context, r *ret, args []value) {
-			fmt.Printf("TRACE: %s\n", fd.Name.String())
+			if TRACE {
+				fmt.Printf("TRACE: %s\n", fd.Name.String())
+			}
 			childCtx := ctx.copy()
 			for i, arg := range args {
 				argName := fd.Type.Params.List[i].Names[0].Name
