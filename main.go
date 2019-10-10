@@ -217,7 +217,11 @@ func interpretStmt(ctx context, r *ret, stmt ast.Stmt) {
 		switch e := s.X.(type) {
 		case *ast.Ident:
 			v := ctx[e.Name]
-			v.val = v.val.(int64) + 1
+			if s.Tok == token.INC {
+				v.val = v.val.(int64) + 1
+			} else {
+				v.val = v.val.(int64) - 1
+			}
 			return
 		default:
 			panic("Unsupported incdec type")
