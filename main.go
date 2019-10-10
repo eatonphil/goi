@@ -25,7 +25,7 @@ type value struct {
 	val interface{}
 }
 
-type context map[string]value
+type context map[string]*value
 
 type ret struct {
 	set  bool
@@ -54,7 +54,7 @@ func (ctx context) copy() context {
 }
 
 func newContext() context {
-	return map[string]value{}
+	return map[string]*value{}
 }
 
 func interpretBinaryExpr(ctx context, r *ret, bexpr *ast.BinaryExpr) {
@@ -70,6 +70,9 @@ func interpretBinaryExpr(ctx context, r *ret, bexpr *ast.BinaryExpr) {
 		return
 	case token.SUB:
 		r.setVal(value{i64, x.val.(int64) - y.val.(int64)})
+		return
+	case token.LSS:
+		r.setVal(value{i64, x.val.(int64) < y.val.(int64)})
 		return
 	case token.EQL:
 		r.setVal(value{bl, x.val.(int64) == y.val.(int64)})
@@ -107,7 +110,7 @@ func interpretExpr(ctx context, r *ret, expr ast.Expr) {
 		}
 		return
 	case *ast.Ident:
-		r.setVal(ctx[e.Name])
+		r.setVal(*ctx[e.Name])
 		return
 	case *ast.CallExpr:
 		interpretCallExpr(ctx, r, e)
@@ -132,10 +135,8 @@ func interpretReturnStmt(ctx context, r *ret, s *ast.ReturnStmt) {
 }
 
 func interpretIfStmt(ctx context, r *ret, is *ast.IfStmt) {
-	childCtx := ctx.copy()
-
 	if is.Init != nil {
-		interpretStmt(childCtx, nil, is.Init)
+		interpretStmt(ctx, nil, is.Init)
 	}
 
 	var cr ret
@@ -147,6 +148,45 @@ func interpretIfStmt(ctx context, r *ret, is *ast.IfStmt) {
 	}
 
 	interpretStmt(ctx, r, is.Else)
+}
+
+func interpretForStmt(ctx context, r *ret, fs *ast.ForStmt) {
+	var ir ret
+	interpretStmt(ctx, &ir, fs.Init)
+
+	for {
+		var cr ret
+		interpretExpr(ctx, &cr, fs.Cond)
+
+		if !cr.vals[0].val.(bool) {
+			break
+		}
+
+		interpretStmt(ctx, r, fs.Body)
+		interpretStmt(ctx, nil, fs.Post)
+	}
+}
+
+func interpretAssignStmt(ctx context, r *ret, as *ast.AssignStmt) {
+	for i, lhs := range as.Lhs {
+		rhs := as.Rhs[i]
+
+		switch l := lhs.(type) {
+		case *ast.Ident:
+			// In other cases should be interpreted _after_ lhs
+			var rr ret
+			interpretExpr(ctx, &rr, rhs)
+
+			if as.Tok == token.DEFINE {
+				ctx[l.Name] = &rr.vals[0]
+			} else {
+				*ctx[l.Name] = rr.vals[0]
+			}
+		default:
+			fmt.Println(lhs, rhs)
+			panic("Unsupported assign")
+		}
+	}
 }
 
 func interpretStmt(ctx context, r *ret, stmt ast.Stmt) {
@@ -164,10 +204,28 @@ func interpretStmt(ctx context, r *ret, stmt ast.Stmt) {
 	case *ast.BlockStmt:
 		interpretBlockStmt(ctx, r, s)
 		return
+	case *ast.ForStmt:
+		interpretForStmt(ctx, r, s)
+		return
+	case *ast.AssignStmt:
+		interpretAssignStmt(ctx, r, s)
+		return
+	case *ast.ExprStmt:
+		interpretExpr(ctx, r, s.X)
+		return
+	case *ast.IncDecStmt:
+		switch e := s.X.(type) {
+		case *ast.Ident:
+			v := ctx[e.Name]
+			v.val = v.val.(int64) + 1
+			return
+		default:
+			panic("Unsupported incdec type")
+		}
 	}
 
+	fmt.Printf("%+v\n", stmt)
 	panic("Unhandled stmt type")
-
 }
 
 func interpretBlockStmt(ctx context, r *ret, body *ast.BlockStmt) {
@@ -180,7 +238,7 @@ func interpretBlockStmt(ctx context, r *ret, body *ast.BlockStmt) {
 }
 
 func interpretFuncDecl(ctx context, r *ret, fd *ast.FuncDecl) {
-	ctx[fd.Name.String()] = value{
+	ctx[fd.Name.String()] = &value{
 		fn,
 		fnType(func(ctx context, r *ret, args []value) {
 			if TRACE {
@@ -189,7 +247,7 @@ func interpretFuncDecl(ctx context, r *ret, fd *ast.FuncDecl) {
 			childCtx := ctx.copy()
 			for i, arg := range args {
 				argName := fd.Type.Params.List[i].Names[0].Name
-				childCtx[argName] = arg
+				childCtx[argName] = &arg
 			}
 			interpretBlockStmt(childCtx, r, fd.Body)
 		}),
@@ -206,7 +264,7 @@ func interpret(f *ast.File) {
 	}
 
 	var r ret
-	ctx["main"].val.(fnType)(ctx, &r, []value{})
+	(*ctx["main"]).val.(fnType)(ctx, &r, []value{})
 	fmt.Println(r.vals[0].val)
 }
 
