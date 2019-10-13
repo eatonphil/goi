@@ -266,6 +266,17 @@ func interpretFuncDecl(ctx context, r *ret, fd *ast.FuncDecl) {
 
 func interpret(f *ast.File) {
 	ctx := newContext()
+	ctx["println"] = &value{
+		fn,
+		fnType(func(ctx context, r *ret, args []value) {
+			var values []interface{}
+			for _, arg := range args {
+				values = append(values, arg.val)
+			}
+
+			fmt.Println(values...)
+		}),
+	}
 
 	for _, d := range f.Decls {
 		if fd, ok := d.(*ast.FuncDecl); ok {
@@ -275,7 +286,6 @@ func interpret(f *ast.File) {
 
 	var r ret
 	(*ctx["main"]).val.(fnType)(ctx, &r, []value{})
-	fmt.Println(r.vals[0].val)
 }
 
 func main() {
