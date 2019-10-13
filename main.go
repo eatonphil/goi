@@ -71,6 +71,12 @@ func interpretBinaryExpr(ctx context, r *ret, bexpr *ast.BinaryExpr) {
 	case token.SUB:
 		r.setVal(value{i64, x.val.(int64) - y.val.(int64)})
 		return
+	case token.MUL:
+		r.setVal(value{i64, x.val.(int64) * y.val.(int64)})
+		return
+	case token.QUO:
+		r.setVal(value{i64, x.val.(int64) / y.val.(int64)})
+		return
 	case token.LSS:
 		r.setVal(value{i64, x.val.(int64) < y.val.(int64)})
 		return
