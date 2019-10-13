@@ -1,9 +1,10 @@
 package main
 
 func main() {
-	if 1 == 1 {
-		return 3
+	if 1 == 2 {
+		println(3)
+		return
 	}
 
-	return 4
+	println(4)
 }
