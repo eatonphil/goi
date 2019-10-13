@@ -5,7 +5,7 @@ An interpreter for Go.
 ### Use
 
 ```golang
-$ go build main.go
+$ go build .
 $ cat examples/iterative_fib.go
 package main
 
@@ -26,6 +26,6 @@ func fib(n int) int {
 func main() {
 	return fib(15)
 }
-$ ./main examples/iterative_fib.go
+$ ./goi examples/iterative_fib.go
 377
 ```
