@@ -24,7 +24,7 @@ func fib(n int) int {
 }
 
 func main() {
-	println(15)
+	println(fib(15))
 }
 $ ./main examples/iterative_fib.go
 377
